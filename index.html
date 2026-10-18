@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <title>ICM Meteo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Meteo ICM weather view for selected cities">
+    <meta name="author" content="Johny Kvsky">
+    <script>
+        (function() {
+            var theme = 'dark';
+            try {
+                var saved = localStorage.getItem('meteo_theme');
+                if (saved === 'light' || saved === 'dark') theme = saved;
+            } catch (e) {}
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="top-bar">
+            <div class="status-row">
+                <span>Lokalizacja: <strong id="currentCityLabel">Częstochowa</strong></span>
+                <span class="sep">|</span>
+                <span>Start prognozy: <strong id="meteoHour">—</strong></span>
+                <span id="statusBadge" class="status-badge"></span>
+            </div>
+
+            <div class="controls-row">
+                <div class="control-group" role="group" aria-label="Model siatki">
+                    <span class="control-label">Model:</span>
+                    <button type="button" id="model-um4_60" class="btn btn-model active" data-model="um4_60">UM 4km (60h)</button>
+                    <button type="button" id="model-um4_120" class="btn btn-model" data-model="um4_120">UM 4km (120h)</button>
+                </div>
+
+                <div class="control-group">
+                    <label class="checkbox-label" title="Pokaż/ukryj zielone liczby prawdopodobieństwa opadu (%) na dole wykresu opadów">
+                        <input type="checkbox" id="togglePrecipProb" checked>
+                        <span>Prawdopodobieństwo opadu (%)</span>
+                    </label>
+                    <label class="checkbox-label" title="Przełącz między ciśnieniem na poziomie morza (slpres, jak w starym ICM) a ciśnieniem na poziomie terenu (trpres, jak w nowym ICM)">
+                        <input type="checkbox" id="toggleSeaLevelPres" checked>
+                        <span>Ciśnienie n.p.m. (slpres)</span>
+                    </label>
+                </div>
+
+                <div class="control-group" role="group" aria-label="Motyw strony">
+                    <span class="control-label">Motyw:</span>
+                    <button type="button" id="theme-dark" class="btn btn-theme active" data-theme="dark">🌙 Ciemny</button>
+                    <button type="button" id="theme-light" class="btn btn-theme" data-theme="light">☀️ Jasny</button>
+                </div>
+            </div>
+
+            <div class="cities-row">
+                <div class="city-group">
+                    <button type="button" class="btn btn-city active" data-city="czestochowa">Częstochowa</button>
+                    <button type="button" class="btn btn-city" data-city="galezow">Gałęzów</button>
+                    <button type="button" class="btn btn-city" data-city="krakow">Kraków</button>
+                    <button type="button" class="btn btn-city" data-city="ustka">Ustka</button>
+                    <button type="button" class="btn btn-city" data-city="kule">Kule</button>
+                    <button type="button" class="btn btn-city" data-city="ustron">Ustroń</button>
+                    <button type="button" class="btn btn-city" data-city="poddabie">Poddąbie</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="meteogram-wrapper">
+            <div class="canvas-scroll">
+                <canvas id="meteogramCanvas" width="560" height="675"></canvas>
+            </div>
+        </main>
+        <div id="hoverReadout" class="hover-readout">&nbsp;</div>
+    </div>
+
+    <script src="./js/scripts.js"></script>
+</body>
+</html>

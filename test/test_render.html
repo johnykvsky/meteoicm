@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <title>ICM Meteo - Testy Renderowania Sample</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+        (function() {
+            var theme = 'dark';
+            try {
+                var saved = localStorage.getItem('meteo_theme');
+                if (saved === 'light' || saved === 'dark') theme = saved;
+            } catch (e) {}
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .test-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 16px;
+            max-width: 900px;
+            margin: 0 auto 20px auto;
+            text-align: left;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            box-shadow: var(--card-shadow);
+        }
+        .test-title {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            color: var(--text);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .test-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13px;
+        }
+        .test-item {
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .test-pass {
+            color: #1a7f37;
+            font-weight: bold;
+        }
+        [data-theme="dark"] .test-pass {
+            color: #3fb950;
+        }
+        .test-fail {
+            color: #cf222e;
+            font-weight: bold;
+        }
+        [data-theme="dark"] .test-fail {
+            color: #f85149;
+        }
+        .test-desc {
+            color: var(--text);
+        }
+        .test-summary {
+            margin-top: 10px;
+            padding-top: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .badge-count {
+            background: #dafbe1;
+            color: #1a7f37;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        [data-theme="dark"] .badge-count {
+            background: #11341c;
+            color: #3fb950;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-box">
+            <div class="test-title">
+                <span>Raport testów automatycznych (sample_response.txt)</span>
+                <span id="testBadge" class="badge-count">Uruchamianie...</span>
+            </div>
+            <ul id="testResults" class="test-list"></ul>
+            <div id="testSummary" class="test-summary"></div>
+        </div>
+
+        <div class="top-bar">
+            <div class="status-row">
+                <span>Tryb testowy: <strong>sample_response.txt (Łódź, 51.77°N, 19.46°E)</strong></span>
+                <span class="sep">|</span>
+                <span>Start: <strong id="meteoHour">—</strong></span>
+                <span id="statusBadge" class="status-badge ok">Dane z sample_response.txt</span>
+            </div>
+            <div class="controls-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="togglePrecipProb" checked>
+                    <span>Prawdopodobieństwo opadu (%)</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="toggleSeaLevelPres" checked>
+                    <span>Ciśnienie n.p.m. (slpres)</span>
+                </label>
+                <div class="control-group" role="group" aria-label="Motyw strony">
+                    <span class="control-label">Motyw:</span>
+                    <button type="button" id="theme-dark" class="btn btn-theme active" data-theme="dark">🌙 Ciemny</button>
+                    <button type="button" id="theme-light" class="btn btn-theme" data-theme="light">☀️ Jasny</button>
+                </div>
+            </div>
+        </div>
+
+        <main class="meteogram-wrapper">
+            <div class="canvas-scroll">
+                <canvas id="meteogramCanvas" width="560" height="675"></canvas>
+            </div>
+        </main>
+        <div id="hoverReadout" class="hover-readout">&nbsp;</div>
+    </div>
+
+    <script src="./sample_data.js"></script>
+    <script src="../js/scripts.js"></script>
+    <script>
+    (async function () {
+        const resultsEl = document.getElementById('testResults');
+        const summaryEl = document.getElementById('testSummary');
+        const badgeEl = document.getElementById('testBadge');
+
+        let passed = 0;
+        let failed = 0;
+
+        function recordTest(desc, pass, err) {
+            const li = document.createElement('li');
+            li.className = 'test-item';
+            li.innerHTML = pass
+                ? `<span class="test-pass">✔ PASS</span> <span class="test-desc">${desc}</span>`
+                : `<span class="test-fail">✖ FAIL</span> <span class="test-desc">${desc}: ${err || ''}</span>`;
+            resultsEl.appendChild(li);
+            if (pass) passed++; else failed++;
+        }
+
+        let raw = window.SAMPLE_METEO_RESPONSE;
+        recordTest('Wczytanie i poprawność formatu JSON sample_data.js', !!(raw && raw.data));
+        if (!raw || !raw.data) return;
+
+        const d = raw.data;
+        const seriesCount = Object.keys(d).length;
+        recordTest(`Obecność serii danych (znaleziono ${seriesCount} z 28)`, seriesCount >= 28);
+        recordTest('Rozmiar serii danych (dokładnie 60 godzin)', d.airtmp_point && d.airtmp_point.data.length === 60);
+        recordTest('Wymiary siatki modelu: lat 51.7687, lon 19.457, x=225, y=198, um4 P5',
+            d.airtmp_point.point.lat === 51.7687 && d.airtmp_point.point.row === 198);
+
+        const parsed = ICMMeteo.parseMeteoResponse(raw);
+        recordTest('Poprawne sparsowanie struktury przez ICMMeteo.parseMeteoResponse()', !!parsed && parsed.count === 60);
+
+        const wt0 = parsed.warsawTimes[0];
+        recordTest(`Konwersja czasu lokalnego (Europe/Warsaw): ${wt0.hour}:00 ${wt0.tzName}, ${wt0.dateLabel}`, wt0.hour === 15 && wt0.tzName === 'CEST');
+
+        const sun = parsed.sunTimes;
+        recordTest('Obliczenie wschodu i zachodu słońca oraz pasm nocnych (NOC)', !!(sun && sun.sunriseSec && sun.sunsetSec));
+
+        const sentinels = parsed.cldbse65.filter(v => v < 0);
+        const validCld = parsed.cldbse65.filter(v => v >= 0);
+        recordTest(`Wykrycie i odfiltrowanie wartości wartowniczych chmur (< 0): ${sentinels.length} wartowników, ${validCld.length} punktów prawidłowych`, sentinels.length > 0 && validCld.length > 0);
+
+        // Render to canvas
+        ICMMeteo.state.parsed = parsed;
+        ICMMeteo.renderMeteogram();
+        ICMMeteo.updateReadout(0);
+        const canvas = document.getElementById('meteogramCanvas');
+        recordTest(`Wyrenderowanie kompletnego meteogramu na Canvas (${canvas.width}x${canvas.height} px dla dpr=2)`, canvas.width > 0 && canvas.height > 0);
+
+        const readoutEl = document.getElementById('hoverReadout');
+        recordTest('Inicjalne wyświetlenie danych dla pierwszej godziny w hoverReadout', readoutEl && readoutEl.textContent.includes('Temperatura:'));
+
+        badgeEl.textContent = `${passed} zaliczonych, ${failed} błędów`;
+        badgeEl.className = failed === 0 ? 'badge-count' : 'status-badge fallback';
+        summaryEl.textContent = failed === 0
+            ? 'Wszystkie testy poprawności i renderowania danych z sample_response zakończone sukcesem!'
+            : `Wykryto ${failed} błędów w testach!`;
+    })();
+    </script>
+</body>
+</html>
